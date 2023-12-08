@@ -56,10 +56,6 @@ def set_up_constraints(variables, unique_variables):
                     else:
                         constraints += [(j, i)]
 
-    # print("constraints: ", constraints)
-    # print(len(constraints))
-
-    # print("unique variables: ", unique_variables)
     # set up rest of the constraints
     rest_constraints = []
 
@@ -95,13 +91,17 @@ def set_up_constraints(variables, unique_variables):
     rest_constraints += [tuple(sorted((variables[6-1], variables[11-1])))]
     rest_constraints += [tuple(sorted((variables[11-1], "gamma")))]
 
-    # C5 (gamma+x1+x5 = 10+x10)
+    # C5 (gamma+x1+x5 = x9*10+x10)
     rest_constraints += [tuple(sorted((variables[1-1], "gamma")))]
     rest_constraints += [tuple(sorted((variables[5-1], "gamma")))]
+    rest_constraints += [tuple(sorted((variables[9-1], "gamma")))]
     rest_constraints += [tuple(sorted((variables[10-1], "gamma")))]
     rest_constraints += [tuple(sorted((variables[1-1], variables[5-1])))]
     rest_constraints += [tuple(sorted((variables[1-1], variables[10-1])))]
     rest_constraints += [tuple(sorted((variables[5-1], variables[10-1])))]
+    rest_constraints += [tuple(sorted((variables[1-1], variables[9-1])))]
+    rest_constraints += [tuple(sorted((variables[5-1], variables[9-1])))]
+    rest_constraints += [tuple(sorted((variables[10-1], variables[9-1])))]
 
     for i in rest_constraints:
         if i not in constraints:
@@ -128,39 +128,137 @@ def backtracking_search(variables, unique_variables, domains, constraint, assign
         if check_completion(assignment, clean_variables):
             print("solution found!!!")
             print("assignment: ", assignment)
+            generate_output_file(assignment, variables)
             return assignment
     current_variable = select_unassigned_variable(unique_variables, assignment, domains, constraint)
     if current_variable is not None:
         current_variable = current_variable[0] # current variable return a list of len = 1
-        # print("current variable: ", current_variable)
         for value in domains[current_variable]:
             if value not in assignment.values():  # Check if the value is not already assigned
                 new_assignment = assignment.copy()
-                new_assignment[current_variable] = value
-                # print("assignment: ", new_assignment)
-                result = backtracking_search(variables, unique_variables, domains, constraint, new_assignment, clean_variables)
-                if result is not None:
-                    return result
+                if consistent(current_variable, value, new_assignment, variables, domains):
+                    new_assignment[current_variable] = value
+                    result = backtracking_search(variables, unique_variables, domains, constraint, new_assignment, clean_variables)
+                    if result is not None:
+                        return result
                 assignment[current_variable] = None
     return None
 
-    # if len(assignment) == len(unique_variables): # if assignment complete
-    #     if check_completion(assignment, clean_variables):
-    #         print("solution found!!!")
-    #         print("assignment: ", assignment)
-    #         return assignment
-    # for i in range(len(unique_variables)):
-    #     current_variable = select_unassigned_variable(unique_variables, assignment, domains, constraint)
-    #     if current_variable is not None:
-    #         current_variable = current_variable[0] # current variable return a list of len = 1
-    #         for value in domains[current_variable]:
-    #             assignment[current_variable] = value
-    #             print("assignment: ", assignment)
-    #             backtracking_search(variables, unique_variables, domains, constraint, assignment, clean_variables)
+def consistent(current_variable, value, assignment, variables, domains):
+    assignment[current_variable] = value
 
-# def consistent(current_variable, value, assignment):
-#     assignment[current_variable] = value
-#     for i in assignment: 
+    # C1: Alldiff(letters)
+    if len(set(assignment.values())) != len(assignment):
+        return False
+    
+    if current_variable == variables[4-1] or current_variable == variables[8-1] or current_variable == variables[13-1]:
+        # C2: (x4+x8 = 10*alpha+x13)
+        if variables[4-1] in assignment: # if variable already assigned, domain is the assigned value
+            x4_domain = [assignment[variables[4-1]]]
+        else: # if the variable not yet assigned, domain is the domain values
+            x4_domain = domains[variables[4-1]]
+        if variables[8-1] in assignment:
+            x8_domain = [assignment[variables[8-1]]]
+        else:
+            x8_domain = domains[variables[8-1]]
+        if variables[13-1] in assignment:
+            x13_domain = [assignment[variables[13-1]]]
+        else:
+            x13_domain = domains[variables[13-1]]
+
+        alpha_domain = domains["alpha"]
+
+        for four in x4_domain:
+            for eight in x8_domain:
+                for thirteen in x13_domain:
+                    for a in alpha_domain:
+                        if four + eight == 10 * a + thirteen:
+                            return True
+        return False
+    
+    if current_variable == variables[3-1] or current_variable == variables[7-1] or current_variable == variables[12-1]:
+        # C3: (alpha+x3+x7 = 10*beta+x12)
+        if variables[3-1] in assignment:
+            x3_domain = [assignment[variables[3-1]]]
+        else:
+            x3_domain = domains[variables[3-1]]
+        if variables[7-1] in assignment:
+            x7_domain = [assignment[variables[7-1]]]
+        else:
+            x7_domain = domains[variables[7-1]]
+        if variables[12-1] in assignment:
+            x12_domain = [assignment[variables[12-1]]]
+        else:
+            x12_domain = domains[variables[12-1]]
+
+        alpha_domain = domains["alpha"]
+        beta_domain = domains["beta"]
+
+        for a in alpha_domain:
+            for three in x3_domain:
+                for seven in x7_domain:
+                    for b in beta_domain:
+                        for twelve in x12_domain:
+                            if a + three + seven == 10 * b + twelve:
+                                return True
+        return False
+
+    if current_variable == variables[2-1] or current_variable == variables[6-1] or current_variable == variables[11-1]:
+        # C4: (beta+x2+x6 = 10*gamma+x11)
+        if variables[2-1] in assignment:
+            x2_domain = [assignment[variables[2-1]]]
+        else:
+            x2_domain = domains[variables[2-1]]
+        if variables[6-1] in assignment:
+            x6_domain = [assignment[variables[6-1]]]
+        else:
+            x6_domain = domains[variables[6-1]]
+        if variables[11-1] in assignment:
+            x11_domain = [assignment[variables[11-1]]]
+        else:
+            x11_domain = domains[variables[11-1]]
+
+        beta_domain = domains["beta"]
+        gamma_domain = domains["gamma"]
+
+        for b in beta_domain:
+            for two in x2_domain:
+                for six in x6_domain:
+                    for c in gamma_domain:
+                        for eleven in x11_domain:
+                            if b + two + six == 10 * c + eleven:
+                                return True
+        return False
+    
+    if current_variable == variables[1-1] or current_variable == variables[5-1] or current_variable == variables[10-1] or current_variable == variables[9-1]:
+        # C5: (gamma+x1+x5 = x9*10+x10)
+        if variables[1-1] in assignment:
+            x1_domain = [assignment[variables[1-1]]]
+        else:
+            x1_domain = domains[variables[1-1]]
+        if variables[5-1] in assignment:
+            x5_domain = [assignment[variables[5-1]]]
+        else:
+            x5_domain = domains[variables[5-1]]
+        if variables[10-1] in assignment:
+            x10_domain = [assignment[variables[10-1]]]
+        else:
+            x10_domain = domains[variables[10-1]]
+        if variables[9-1] in assignment:
+            x9_domain = [assignment[variables[9-1]]]
+        else:
+            x9_domain = domains[variables[9-1]]
+
+        gamma_domain = domains["gamma"]
+
+        for c in gamma_domain:
+            for one in x1_domain:
+                for five in x5_domain:
+                    for ten in x10_domain:
+                        for nine in x9_domain:
+                            if c + one + five == nine * 10 + ten:
+                                return True
+        return False
 
 def check_completion(assignment, clean_variables): # function checked
     line1_value = (assignment[clean_variables[1-1]]*1000
@@ -180,6 +278,34 @@ def check_completion(assignment, clean_variables): # function checked
         return True
     else:
         return False
+    
+def generate_output_file(assignment, variables):
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('filename')
+    cmdline = parser.parse_args()
+
+    # Read input file and create initial and goal states
+    with open(cmdline.filename, 'r') as file:
+        lines = file.read().splitlines()
+
+    new_file_name = cmdline.filename[:-4] + "solution.txt"
+    f = open(new_file_name, "w")
+    
+    # first line
+    for i in range(4):
+        f.write(str(assignment[variables[i]]))
+    f.write ("\n")    
+
+    # second line
+    for i in range(4,8):
+        f.write(str(assignment[variables[i]]))
+    f.write ("\n") 
+
+    # third line
+    for i in range(8,13):
+        f.write(str(assignment[variables[i]]))
+    f.write ("\n") 
 
 # Main function
 def main() -> None:
@@ -206,11 +332,6 @@ def main() -> None:
     # get the constraints set up
     constraints = set_up_constraints(variables, unique_variables)
 
-    # put the three auxilary variables in 
-    # unique_variables.add("alpha") # three auxillary variables representing carry over
-    # unique_variables.add("beta")
-    # unique_variables.add("gamma")
-
     # Initialize domains based on variable-specific constraints
     domains = {}
 
@@ -228,10 +349,10 @@ def main() -> None:
     domains["gamma"] = [0, 1]
 
     # print out the parameters and check
-    print("constraints: ", constraints)
-    print("domains: ", domains)
-    print("variables: ", variables)
-    print("unique variables: ", unique_variables)
+    # print("constraints: ", constraints)
+    # print("domains: ", domains)
+    # print("variables: ", variables)
+    # print("unique variables: ", unique_variables)
 
     assignment = {}
     backtracking_search(variables, unique_variables, domains, constraints, assignment, clean_variables)
