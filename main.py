@@ -1,3 +1,4 @@
+# Author: Michelle Lin (netid: ml7188) and Tianzuo Liu (netid: tl3119)
 import argparse
 from typing import List, Tuple
 
@@ -10,8 +11,8 @@ def minimum_remaining_values(variables, assigned, domains):
     min_length = len(domains[unassigned_variables[0]])
     min_variables = [unassigned_variables[0]]
 
-    for var in unassigned_variables[1:]:
-        if len(domains[var]) < min_length:
+    for var in unassigned_variables[1:]: 
+        if len(domains[var]) < min_length: # get the variable with the minimum number of remaining values
             min_length = len(domains[var])
             min_variables = [var]
         # if there are multiple variables have same values
@@ -110,11 +111,11 @@ def set_up_constraints(variables, unique_variables):
     return constraints
 
 def select_unassigned_variable(unique_variables, assignment, domains, constraints):
-    min_variables = minimum_remaining_values(unique_variables, assignment, domains)
+    min_variables = minimum_remaining_values(unique_variables, assignment, domains) # use MRV first
     if min_variables is None:
         return None
     else:
-        if len(min_variables) > 1:
+        if len(min_variables) > 1: # if more than one variable selected by MRV, use degree heuristics
             degree_var = degree_heuristics(unique_variables, constraints, assignment, min_variables)
             if degree_var is None:
                 return None
@@ -168,7 +169,7 @@ def consistent(current_variable, value, assignment, variables, domains):
 
         alpha_domain = domains["alpha"]
 
-        for four in x4_domain:
+        for four in x4_domain: # check if there is a combination on the domain that satisfies constraints
             for eight in x8_domain:
                 for thirteen in x13_domain:
                     for a in alpha_domain:
@@ -320,13 +321,24 @@ def main() -> None:
     # get all variables
     variables = []
     clean_variables = []
-    for i in lines:
-        for j in i:
-            variables += [j]
-            clean_variables += [j]
+
+    # line 1:
+    for i in range(4):
+        variables += [lines[0][i]]
+        clean_variables += [lines[0][i]]
+
+    # line 2:
+    for i in range(4):
+        variables += [lines[1][i]]
+        clean_variables += [lines[1][i]]
+
+    # line 3:
+    for i in range(5):
+        variables += [lines[2][i]]
+        clean_variables += [lines[2][i]]
 
     # make a set of unique variables
-    unique_variables = set(''.join(lines))
+    unique_variables = set(variables)
     
     # get the constraints set up
     constraints = set_up_constraints(variables, unique_variables)
@@ -346,19 +358,9 @@ def main() -> None:
     domains["alpha"] = [0, 1]
     domains["beta"] = [0, 1]
     domains["gamma"] = [0, 1]
-
-    # print out the parameters and check
-    # print("constraints: ", constraints)
-    # print("domains: ", domains)
-    # print("variables: ", variables)
-    # print("unique variables: ", unique_variables)
-
+  
     assignment = {}
     backtracking_search(variables, unique_variables, domains, constraints, assignment, clean_variables)
-
-    # assignment1 = {'M': 1, 'S': 9, 'E': 5, 'R': 8, 'Y': 2, 'D': 7, 'O': 0, 'N': 6} # this is a solution for SENDMOREMONEY
-    # print(clean_variables)
-    # print(check_completion(assignment1, clean_variables))
 
 if __name__ == "__main__":
     main()
