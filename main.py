@@ -304,8 +304,7 @@ def generate_output_file(assignment, variables):
 
     # third line
     for i in range(8,13):
-        f.write(str(assignment[variables[i]]))
-    f.write ("\n") 
+        f.write(str(assignment[variables[i]])) 
 
 # Main function
 def main() -> None:
